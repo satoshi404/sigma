@@ -1,0 +1,13 @@
+*.o
+*.obj
+*.mtl
+*.png
+*.exe
+*.out
+*.dll
+*.so
+*.txt
+
+Build/
+.vscode/
+.cache/
