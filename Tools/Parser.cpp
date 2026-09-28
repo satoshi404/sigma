@@ -1,119 +1,55 @@
 #include "Build.hpp"
 
-#include <dirent.h>
-#include <stdio.h>
+#include <Core/FileSystem.hpp>
+
 #include <string.h>
-
-#if PIPELINE_OS_LINUX
-	#include <unistd.h>
-	#include <sys/stat.h>
-#elif PIPELINE_OS_WINDOWS
-	#include <sys/stat.h>
-	#include <direct.h>
-#endif
-
-#include <stdlib.h>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Parser
 
-STATIC bool isDirectory(const char *path)
+STATIC bool containsMain( const char *filePath )
 {
-	struct stat st;
-	if (stat(path, &st) != 0) {
-		return false;
-	}
+	char *buffer = nullptr;
+	u64   read   = FileSystem::readFile( filePath, buffer );
 
-	return S_ISDIR(st.st_mode);
-}
-
-STATIC bool isDotEntry(const StringView &name) {
-	return name == StringView(".") || name == StringView("..");
-}
-
-
-STATIC bool hasExtension(const StringView &name, const char *ext) {
-	u64 extLen = strlen(ext);
-
-	if (name.size() < extLen) {
-		return false;
-	}
-
-	return memcmp(name.cStr() + (name.size() - extLen), ext, extLen) == 0;
-}
-
-STATIC String stripExtension(const StringView &name) {
-	u64 dot = U64_MAX;
-
-	for (u64 i = name.size(); i > 0; --i) {
-		if (name[i - 1] == '.') {
-			dot = i - 1;
-			break;
-		}
-	}
-
-	return (dot == U64_MAX) ? String(name) : String(name.subStr(0, dot));
-}
-
-STATIC bool containsMain(const char *filePath) {
-	FILE *file = fopen(filePath, "rb");
-	if (file == nullptr) {
-		return false;
-	}
-
-	fseek(file, 0, SEEK_END);
-	long fileSize = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	if (fileSize <= 0) {
-		fclose(file);
-		return false;
-	}
-
-	char *buffer =
-			static_cast<char *>(Memory::alloc(static_cast<u64>(fileSize) + 1));
-	u64 read = fread(buffer, 1, static_cast<u64>(fileSize), file);
-	fclose(file);
+	if ( buffer == nullptr ) return false;
 
 	bool found = false;
 
-	for (u64 i = 0; i + 8 <= read; ++i) {
-		if (memcmp(buffer + i, "int main", 8) == 0) {
+	for ( u64 i = 0; i + 8 <= read; ++i )
+	{
+		if ( memcmp( buffer + i, "int main", 8 ) == 0 )
+		{
 			found = true;
 			break;
 		}
 	}
 
-	Memory::free(buffer, static_cast<u64>(fileSize) + 1);
+	Memory::free( buffer, read + 1 );
 	return found;
 }
 
-STATIC void collectSources(const String &fullDir, const String &relativeDir,
-													 Array<String> &outSources) {
-	DIR *dir = opendir(fullDir.cStr());
-	if (dir == nullptr) {
-		return;
-	}
+STATIC void collectSources( const String &fullDir, const String &relativeDir, Array<String> &outSources )
+{
+	Array<DirEntry> entries;
+	if ( !FileSystem::listEntries( fullDir, entries ) ) return;
 
-	struct dirent *entry;
-	while ((entry = readdir(dir)) != nullptr) {
-		String name(entry->d_name);
+	for ( u64 i = 0; i < entries.size(); ++i )
+	{
+		const DirEntry &entry = entries[i];
 
-		if (isDotEntry(name)) {
-			continue;
+		String childFull     = FileSystem::joinPath( fullDir, entry.Name );
+		String childRelative = FileSystem::joinPath( relativeDir, entry.Name );
+
+		if ( entry.Type == EntryType::Directory )
+		{
+			collectSources( childFull, childRelative, outSources );
 		}
-
-		String childFull = fullDir + StringView("/") + name;
-		String childRelative = relativeDir + StringView("/") + name;
-
-		if (isDirectory(childFull.cStr())) {
-			collectSources(childFull, childRelative, outSources);
-		} else if (hasExtension(name, ".cpp")) {
-			outSources.add(childRelative);
+		else if ( FileSystem::hasExtension( entry.Name, ".cpp" ) )
+		{
+			outSources.add( childRelative );
 		}
 	}
-
-	closedir(dir);
 }
 
 STATIC void handleModuleDirectory( const String &name, const String &fullPath, Array<Target> &outTargets )
@@ -121,7 +57,7 @@ STATIC void handleModuleDirectory( const String &name, const String &fullPath, A
 	Target target;
 	target.Name = name;
 
-	String relativeDir = Env::SourceDir + StringView("/") + name;
+	String relativeDir = FileSystem::joinPath( Env::SourceDir, name );
 	collectSources(fullPath, relativeDir, target.Sources);
 
 	if (target.Sources.isEmpty())
@@ -132,7 +68,7 @@ STATIC void handleModuleDirectory( const String &name, const String &fullPath, A
 
 	bool hasMain = false;
 	for (u64 s = 0; s < target.Sources.size() && !hasMain; ++s) {
-		String absolute = Env::ProjectRoot + StringView("/") + target.Sources[s];
+		String absolute = FileSystem::joinPath( Env::ProjectRoot, target.Sources[s] );
 		hasMain = containsMain(absolute.cStr());
 	}
 
@@ -154,9 +90,9 @@ STATIC void handleLooseSource( const String &name, const String &fullPath, Array
 	}
 
 	Target target;
-	target.Name = stripExtension(name);
+	target.Name = FileSystem::stripExtension(name);
 	target.Type = TargetType::Executable;
-	target.Sources.add(Env::SourceDir + StringView("/") + name);
+	target.Sources.add(FileSystem::joinPath( Env::SourceDir, name ));
 
 	LOG_INFO("Target executavel '%s'.", target.Name.cStr());
 	outTargets.add(static_cast<Target &&>(target));
@@ -164,30 +100,23 @@ STATIC void handleLooseSource( const String &name, const String &fullPath, Array
 
 bool Build::init_parser( Array<Target> &outTargets )
 {
-	String sourceRoot = Env::ProjectRoot + StringView( "/" ) + Env::SourceDir;
+	String sourceRoot = FileSystem::joinPath( Env::ProjectRoot, Env::SourceDir );
 
-	DIR *dir = opendir( sourceRoot.cStr() );
-	if ( dir == nullptr )
+	Array<DirEntry> entries;
+	if ( !FileSystem::listEntries( sourceRoot, entries ) )
 	{
 		LOG_FATAL("Nao consegui abrir o diretorio de fontes '%s'.",sourceRoot.cStr());
 		return false;
 	}
 
-	struct dirent *entry;
-	while ( ( entry = readdir(dir) ) != nullptr )
+	for ( u64 i = 0; i < entries.size(); ++i )
 	{
-		String name(entry->d_name);
+		const DirEntry &entry = entries[i];
+		String fullPath = FileSystem::joinPath( sourceRoot, entry.Name );
 
-		if (isDotEntry(name)) continue;
-
-		String fullPath = sourceRoot + StringView("/") + name;
-
-		if ( isDirectory(fullPath.cStr())) handleModuleDirectory( name, fullPath, outTargets);
-		else if ( hasExtension(name, ".cpp") ) handleLooseSource( name, fullPath, outTargets);
-
+		if ( entry.Type == EntryType::Directory ) handleModuleDirectory( entry.Name, fullPath, outTargets );
+		else if ( FileSystem::hasExtension( entry.Name, ".cpp" ) ) handleLooseSource( entry.Name, fullPath, outTargets );
 	}
-
-	closedir( dir );
 
 	if ( outTargets.isEmpty()) LOG_WARNING("Nenhum target encontrado em '%s'.", sourceRoot.cStr());
 

@@ -1,9 +1,9 @@
 #include "Build.hpp"
 
+#include <Core/FileSystem.hpp>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 namespace Env
 {
@@ -18,81 +18,40 @@ namespace Env
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Boot
 
-STATIC bool isPathSeparator( char x ) { return x == '/' || x == '\\'; }
-
-STATIC String joinPath( const String &a, const StringView &b )
-{
-	if ( a.isEmpty() ) return String( b );
-	if ( b.isEmpty() ) return a;
-
-	char last = a[a.size() - 1];
-	if ( isPathSeparator( last ) ) return a + b;
-
-	return a + StringView( "/") + b;
-}
-
-STATIC String normalizePath(const String &path)
-{
-	String result = path;
-	for ( u64 i = 0; i < result.size(); ++i )
-	if (result[i] == '\\') result[i] = '/';;
-
-	return result;
-}
-
-STATIC bool pathExists( const char *path )
-{
-	struct stat st;
-	return stat( path, &st ) == 0;
-}
-
-STATIC bool getCurrentDirectory( char *buffer, u64 size )
-{
-	bool exist = false;
-
-	#if PIPELINE_OS_LINUX
-		exist = getcwd( buffer, size ) != nullptr;
-	#elif PIPELINE_OS_WINDOWS
-		exist = _getcwd( buffer, static_cast<int>( size ) ) != nullptr;
-	#endif
-
-	return exist;
-}
-
 STATIC bool findProjectRoot()
 {
 	char cwd[1024];
-	if (!getCurrentDirectory(cwd, sizeof(cwd))) return false;
+	if ( !FileSystem::getCurrentDirectory( cwd, sizeof( cwd ) ) ) return false;
 
-	String dir = normalizePath( String( cwd ) );
+	String dir = FileSystem::normalizePath( String( cwd ) );
 
 	for ( u64 depth = 0; depth < 32; ++depth )
 	{
-		String candidate = joinPath(dir, Env::SourceDir);
+		String candidate = FileSystem::joinPath( dir, Env::SourceDir );
 
-		LOG_DEBUG( "candidate: %s" ,candidate.cStr() );
+		LOG_DEBUG( "candidate: %s", candidate.cStr() );
 
-		if ( pathExists( candidate.cStr() ) )
+		if ( FileSystem::pathExists( candidate.cStr() ) )
 		{
 			Env::ProjectRoot = dir;
 			return true;
 		}
 
-		StringView view(dir);
+		StringView view( dir );
 		u64 slash = U64_MAX;
 
-		for (u64 i = view.size(); i > 0; --i) {
-			if (isPathSeparator(view[i - 1])) {
+		for ( u64 i = view.size(); i > 0; --i )
+		{
+			if ( FileSystem::isPathSeparator( view[i - 1] ) )
+			{
 				slash = i - 1;
 				break;
 			}
 		}
 
-		if (slash == U64_MAX || slash == 0) {
-			break;
-		}
+		if ( slash == U64_MAX || slash == 0 ) break;
 
-		dir = String(view.subStr(0, slash));
+		dir = String( view.subStr( 0, slash ) );
 	}
 
 	return false;
@@ -100,7 +59,7 @@ STATIC bool findProjectRoot()
 
 STATIC bool loadConfig()
 {
-	String configPath = joinPath( Env::ProjectRoot, StringView( "builder.config" ) );
+	String configPath = FileSystem::joinPath( Env::ProjectRoot, StringView( "builder.config" ) );
 
 	FILE *file = fopen( configPath.cStr(), "r" );
 	if ( file == nullptr ) return true; // Sem config -> ficam os defaults, isso nao e erro.
@@ -177,7 +136,6 @@ STATIC bool detectTool( const char *name, String &outPath )
 {
 	if ( !commandExists( name ) ) return false;
 
-
 	outPath = String( name );
 	return true;
 }
@@ -191,8 +149,8 @@ bool Build::init_boot()
 
   	if ( !loadConfig() ) return false;
 
-  	const String sourcePath = joinPath( Env::ProjectRoot, Env::SourceDir );
-  	if ( !pathExists( sourcePath.cStr() ) )
+  	const String sourcePath = FileSystem::joinPath( Env::ProjectRoot, Env::SourceDir );
+  	if ( !FileSystem::pathExists( sourcePath.cStr() ) )
 	{
    		LOG_FATAL("Diretorio de fontes nao encontrado em '%s'.", sourcePath.cStr());
     	return false;
