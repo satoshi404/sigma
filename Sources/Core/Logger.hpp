@@ -52,9 +52,10 @@ enum LogLevel : u8 {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Logger
 
-class Logger {
+class Logger
+{
 public:
-  STATIC void Log(LogLevel level, const char *file, i32 line, const char *fmt,
+	STATIC void Log(LogLevel level, const char *file, i32 line, const char *fmt,
                   ...) {
     const char *levelStr = LevelToString(level);
     const char *levelColor = LevelToColor(level);
@@ -96,11 +97,11 @@ private:
   STATIC const char *LevelToColor(LogLevel level) {
     switch (level) {
     case LogLevel::Trace:
-        return LOG_COLOR_TRACE;
+      return LOG_COLOR_TRACE;
     case LogLevel::Debug:
-        return LOG_COLOR_DEBUG;
+      return LOG_COLOR_DEBUG;
     case LogLevel::Info:
-        return LOG_COLOR_INFO;
+      return LOG_COLOR_INFO;
     case LogLevel::Warning:
       return LOG_COLOR_WARNING;
     case LogLevel::Error:
@@ -117,22 +118,24 @@ private:
 // Logging Macros
 
 #if PIPELINE_LOG_LEVEL <= 0
-	#define LOG_TRACE(fmt, ...) Logger::Log(LogLevel::Trace, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define LOG_TRACE(fmt, ...)                                                    \
+  Logger::Log(LogLevel::Trace, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #else
-	#define LOG_TRACE(fmt, ...)
+#define LOG_TRACE(fmt, ...)
 #endif
 
 #if PIPELINE_LOG_LEVEL <= 1
-	#define LOG_DEBUG(fmt, ...) Logger::Log(LogLevel::Debug, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define LOG_DEBUG(fmt, ...)                                                    \
+  Logger::Log(LogLevel::Debug, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #else
-	#define LOG_DEBUG(fmt, ...)
+#define LOG_DEBUG(fmt, ...)
 #endif
 
 #if PIPELINE_LOG_LEVEL <= 2
 #define LOG_INFO(fmt, ...)                                                     \
   Logger::Log(LogLevel::Info, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #else
-  #define LOG_INFO(fmt, ...)
+#define LOG_INFO(fmt, ...)
 #endif
 
 #if PIPELINE_LOG_LEVEL <= 3
