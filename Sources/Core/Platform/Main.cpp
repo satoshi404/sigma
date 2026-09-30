@@ -1,4 +1,4 @@
-#include <Core/Array.hpp>
+#include <Core/Containers/Array.hpp>
 #include <Core/Logger.hpp>
 #include <Core/String.hpp>
 
@@ -17,12 +17,12 @@ int main()
     }
   }
 
-  String msg = "Ola mundo";
+  String msg;
 
   if (msg.isEmpty())
     LOG_FATAL("String empty");
 
-  LOG_DEBUG(msg.cStr());
+  if (!msg.isEmpty()) LOG_DEBUG(msg.cStr());
 
   LOG_FATAL("Test faltal ( Shutup )");
 

@@ -1,6 +1,6 @@
 #include "Build.hpp"
 
-#include <Core/FileSystem.hpp>
+#include <Core/Platform/FileSystem.hpp>
 
 #include <string.h>
 

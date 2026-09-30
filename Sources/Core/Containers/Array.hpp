@@ -6,9 +6,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Array
 
-template <typename T> class Array {
+template <typename T>
+class Array
+{
 public:
-  INLINE Array() : _data(nullptr), _count(0), _capacity(0) {}
+	INLINE Array() : _data(nullptr), _count(0), _capacity(0) {}
 
   INLINE Array(Array &&other) noexcept
       : _data(other._data), _count(other._count), _capacity(other._capacity) {

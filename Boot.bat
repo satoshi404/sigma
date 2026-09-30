@@ -30,7 +30,7 @@ if "%CXX%"=="" (
 if not exist "Build\bin" mkdir "Build\bin"
 
 :: Executa a compilacao
-"%COMPILER%" -std=c++20 -O2 -ISources -ITools Tools/Build.cpp Tools/Boot.cpp Tools/Parser.cpp -o Build/bin/builder.exe
+"%COMPILER%" -std=c++20 -O2 -ISources -ITools Tools/Toolchain/Build.cpp Tools/Toolchain/Boot.cpp Tools/Toolchain/Parser.cpp Tools/Tool.cpp -o Build/bin/builder.exe
 
 if !errorlevel! equ 0 (
     echo Builder compilado em: Build/bin/builder.exe

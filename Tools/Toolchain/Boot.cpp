@@ -1,6 +1,6 @@
 #include "Build.hpp"
 
-#include <Core/FileSystem.hpp>
+#include <Core/Platform/FileSystem.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +13,9 @@ namespace Env
 	String ProjectRoot  = {0};
 	String Compiler 	= {0};
 	String Ninja 		= {0};
+
+	bool Debug = false;
+	bool RunAfterBuild = false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +62,7 @@ STATIC bool findProjectRoot()
 
 STATIC bool loadConfig()
 {
+	LOG_INFO( "ROOT %s",  Env::ProjectRoot.cStr() );
 	String configPath = FileSystem::joinPath( Env::ProjectRoot, StringView( "builder.config" ) );
 
 	FILE *file = fopen( configPath.cStr(), "r" );
@@ -80,10 +84,13 @@ STATIC bool loadConfig()
 			value = value.subStr(0, value.size() - 1);
 
 
-		if ( key == StringView( "SOURCE_DIR" ) )      Env::SourceDir = String( value );
-		else if ( key == StringView( "OUTPUT_DIR" ) ) Env::OutputDir = String( value );
-		else if ( key == StringView( "STANDARD" ) )   Env::Standard  = String( value );
-		else LOG_WARNING( "Unknown key" );
+		if ( key == StringView( "SOURCE_DIR" ) )            Env::SourceDir = String( value );
+		else if ( key == StringView( "OUTPUT_DIR" ) )       Env::OutputDir = String( value );
+		else if ( key == StringView( "STANDARD" ) )         Env::Standard  = String( value );
+		else if ( key == StringView( "COMPILER" ) )         Env::Compiler = String( value );
+		else if ( key == StringView( "DEBUG" ) )            Env::Debug = ( value == StringView("true") );
+		else if ( key == StringView( "RUN_AFTER_BUILD" ) )  Env::RunAfterBuild = ( value == StringView("true") );
+		else LOG_WARNING( "Chave desconhecida: '%.*s'", (int)key.size(), key.cStr() );
 	}
 
 	fclose( file );

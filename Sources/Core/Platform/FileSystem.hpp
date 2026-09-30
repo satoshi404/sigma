@@ -2,7 +2,7 @@
 
 #include <Core/Types.hpp>
 #include <Core/String.hpp>
-#include <Core/Array.hpp>
+#include <Core/Containers/Array.hpp>
 #include <Core/Memory.hpp>
 #include <Core/DetectionPipeline.hpp>
 

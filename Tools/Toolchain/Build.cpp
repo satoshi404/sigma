@@ -1,6 +1,6 @@
 #include "Build.hpp"
 
-#include <Core/FileSystem.hpp>
+#include <Core/Platform/FileSystem.hpp>
 
 #include <stdio.h>
 #include <string.h>
@@ -226,19 +226,6 @@ bool Build::init_build( const Array<Target> &targets) {
   }
 
   return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-int main()
-{
-  Array<Target> targets;
-
-  if ( !Build::init_boot() )            return -1;
-  if ( !Build::init_parser( targets ) ) return -1;
-  if ( !Build::init_build( targets ) )  return -1;
-
-  return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
