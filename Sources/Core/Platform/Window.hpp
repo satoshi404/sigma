@@ -7,24 +7,31 @@
 
 namespace WindowAtrib
 {
-	extern const char* title;
-	extern u32 x;
-	extern u32 y;
-	extern u32 width;
-	extern u32 height;
 
-	extern void update();
-}
+extern bool running();
+
+extern void set_title(const char *title);
+
+extern void set_size(const u32 width, const u32 height);
+extern void set_pos(const u32 x, const u32 y);
+
+extern const char *get_title();
+extern u32 get_width();
+extern u32 get_height();
+extern u32 get_posx();
+extern u32 get_posy();
+
+extern void update();
+} // namespace WindowAtrib
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Window
 
 namespace Window
 {
-	extern bool init();
-	extern void show();
-	extern void poll();
-	extern void destroy();
-}
-
+extern bool init();
+extern void show();
+extern void poll();
+extern void destroy();
+} // namespace Window
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
